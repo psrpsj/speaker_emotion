@@ -75,3 +75,11 @@ def train():
     model.save_pretrained(os.path.join(train_args.output_dir, model_args.project_name))
     wandb.finish()
     print("### TRAINING FINISH ###")
+
+
+def main():
+    train()
+
+
+if __name__ == "__main__":
+    main
