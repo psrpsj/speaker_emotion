@@ -51,7 +51,12 @@ def inference():
 
     pred_answer = np.concatenate(output_pred).tolist()
     output_prob = np.concatenate(output_prob, axis=0).tolist()
-    dataset["Target"] = num_to_label(pred_answer)
+    dataset["Target"] = pred_answer
+    dataset["Target"] = num_to_label(dataset["Target"])
     submission = pd.DataFrame({"ID": dataset["ID"], "Target": dataset["Target"]})
-    submission.to_csv(model_path, index=False)
+    submission.to_csv(os.path.join(model_path, "submission.csv"), index=False)
     print("### INFERENCE FINISH ###")
+
+
+if __name__ == "__main__":
+    inference()
