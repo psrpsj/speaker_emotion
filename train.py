@@ -11,7 +11,7 @@ from sklearn.model_selection import train_test_split
 from trainer import CustomTrainer
 from transformers import (
     AutoConfig,
-    AutoModel,
+    AutoModelForSequenceClassification,
     AutoTokenizer,
     HfArgumentParser,
     set_seed,
@@ -44,7 +44,10 @@ def train():
     model_config = AutoConfig.from_pretrained(
         pretrained_model_name_or_path=model_args.model_name
     )
-    model = AutoModel.from_pretrained(model_args.model_name, config=model_config)
+    model_config.num_labels = 7
+    model = AutoModelForSequenceClassification.from_pretrained(
+        model_args.model_name, config=model_config
+    )
     model.to(device)
     model.train()
 
@@ -77,9 +80,5 @@ def train():
     print("### TRAINING FINISH ###")
 
 
-def main():
-    train()
-
-
 if __name__ == "__main__":
-    main
+    train()

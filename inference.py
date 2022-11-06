@@ -8,7 +8,11 @@ from argument import TrainModelArguments
 from dataset import CustomDataset
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-from transformers import AutoModel, AutoTokenizer, HfArgumentParser
+from transformers import (
+    AutoModelForSequenceClassification,
+    AutoTokenizer,
+    HfArgumentParser,
+)
 from utils import num_to_label
 
 
@@ -24,7 +28,7 @@ def inference():
     dataloader = DataLoader(test_dataset, batch_size=16, shuffle=False)
 
     model_path = os.path.join("./output/", model_args.project_name)
-    model = AutoModel.from_pretrained(model_path)
+    model = AutoModelForSequenceClassification.from_pretrained(model_path)
     model.to(device)
     model.eval()
 
