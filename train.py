@@ -42,7 +42,7 @@ def train():
     set_seed(train_args.seed)
 
     if model_args.k_fold:
-        print("### START TRAINING with K-Fold")
+        print("### START TRAINING with K-Fold ###")
         fold = 1
         k_fold = StratifiedKFold(n_splits=5, shuffle=False)
         for train_index, valid_index in k_fold.split(data, data["Target"]):
