@@ -48,7 +48,7 @@ def train():
         k_fold = StratifiedKFold(n_splits=5, shuffle=False)
         for train_index, valid_index in k_fold.split(data, data["Target"]):
             print(f"--- START Fold {fold} ---")
-            train_args.output_dir = os.path.join(
+            output_dir = os.path.join(
                 train_args.output_dir,
                 model_args.project_name + "_kfold",
                 "fold" + str(fold),
@@ -88,7 +88,7 @@ def train():
                 compute_metrics=compute_metrics,
             )
             trainer.train()
-            model.save_pretrained(train_args.output_dir)
+            model.save_pretrained(output_dir)
             wandb.finish()
             print(f"--- Fold {fold} finish! ---")
             fold += 1
