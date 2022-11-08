@@ -29,6 +29,7 @@ def compute_metrics(pred):
 
 def train():
     data = pd.read_csv("./data/train.csv")
+    data["Target"] = label_to_num(data["Target"])
     parser = HfArgumentParser((TrainingArguments, TrainModelArguments))
     (train_args, model_args) = parser.parse_args_into_dataclasses()
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
@@ -57,7 +58,7 @@ def train():
             )
             model_config.num_labels = 7
             model = AutoModelForSequenceClassification.from_pretrained(
-                pretrained_model_name_or_path=model_args.model_name
+                pretrained_model_name_or_path=model_args.model_name, config=model_config
             )
             model.to(device)
             model.train()
@@ -74,9 +75,6 @@ def train():
                 data.iloc[train_index],
                 data.iloc[valid_index],
             )
-
-            train_dataset["Target"] = label_to_num(train_dataset["Target"])
-            valid_dataset["Target"] = label_to_num(valid_dataset["Target"])
 
             train = CustomDataset(train_dataset, tokenizer)
             valid = CustomDataset(valid_dataset, tokenizer)
@@ -117,7 +115,6 @@ def train():
             tags=[model_args.model_name],
         )
         wandb.config.update(train_args)
-        data["Target"] = label_to_num(data["Target"])
         train_dataset, valid_dataset = train_test_split(
             data, test_size=0.2, stratify=data["Target"], random_state=42
         )
