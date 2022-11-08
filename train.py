@@ -52,6 +52,9 @@ def train():
                 model_args.project_name + "_kfold",
                 "fold" + str(fold),
             )
+            model_config = AutoConfig.from_pretrained(
+                pretrained_model_name_or_path=model_args.model_name
+            )
             model_config.num_labels = 7
             model = AutoModelForSequenceClassification.from_pretrained(
                 pretrained_model_name_or_path=model_args.model_name
