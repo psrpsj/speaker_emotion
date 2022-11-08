@@ -7,7 +7,7 @@ import wandb
 from argument import TrainingArguments, TrainModelArguments
 from dataset import CustomDataset
 from sklearn.metrics import accuracy_score, f1_score
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import StratifiedKFold, train_test_split
 from trainer import CustomTrainer
 from transformers import (
     AutoConfig,
@@ -33,7 +33,6 @@ def train():
     (train_args, model_args) = parser.parse_args_into_dataclasses()
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
-    print("### START TRAINING ###")
     print(f"Current model is {model_args.model_name}")
     print(f"Current device is {device}")
 
@@ -41,42 +40,101 @@ def train():
         pretrained_model_name_or_path=model_args.model_name
     )
     set_seed(train_args.seed)
-    model_config = AutoConfig.from_pretrained(
-        pretrained_model_name_or_path=model_args.model_name
-    )
-    model_config.num_labels = 7
-    model = AutoModelForSequenceClassification.from_pretrained(
-        model_args.model_name, config=model_config
-    )
-    model.to(device)
-    model.train()
 
-    wandb.init(
-        entity="psrpsj",
-        project="speaker",
-        name=model_args.project_name,
-        tags=[model_args.model_name],
-    )
-    wandb.config.update(train_args)
-    data["Target"] = label_to_num(data["Target"])
-    train_dataset, valid_dataset = train_test_split(
-        data, test_size=0.2, stratify=data["Target"], random_state=42
-    )
+    if model_args.k_fold:
+        print("### START TRAINING with K-Fold ###")
+        fold = 1
+        k_fold = StratifiedKFold(n_splits=5, shuffle=False)
+        for train_index, valid_index in k_fold.split(data, data["Target"]):
+            print(f"--- START Fold {fold} ---")
+            train_args.output_dir = os.path.join(
+                train_args.output_dir,
+                model_args.project_name + "_kfold",
+                "fold" + str(fold),
+            )
+            model_config.num_labels = 7
+            model = AutoModelForSequenceClassification.from_pretrained(
+                pretrained_model_name_or_path=model_args.model_name
+            )
+            model.to(device)
+            model.train()
 
-    train = CustomDataset(train_dataset, tokenizer)
-    valid = CustomDataset(valid_dataset, tokenizer)
+            wandb.init(
+                entity="psrpsj",
+                project="speaker",
+                name=model_args.project_name + "_kfold_" + str(fold),
+                tags=[model_args.model_name],
+            )
+            wandb.config.update(train_args)
 
-    trainer = CustomTrainer(
-        loss_name=model_args.loss_name,
-        model=model,
-        args=train_args,
-        train_dataset=train,
-        eval_dataset=valid,
-        compute_metrics=compute_metrics,
-    )
-    trainer.train()
-    model.save_pretrained(os.path.join(train_args.output_dir, model_args.project_name))
-    wandb.finish()
+            train_dataset, valid_dataset = (
+                data.iloc[train_index],
+                data.iloc[valid_index],
+            )
+
+            train_dataset["Target"] = label_to_num(train_dataset["Target"])
+            valid_dataset["Target"] = label_to_num(valid_dataset["Target"])
+
+            train = CustomDataset(train_dataset, tokenizer)
+            valid = CustomDataset(valid_dataset, tokenizer)
+
+            trainer = CustomTrainer(
+                loss_name=model_args.loss_name,
+                model=model,
+                args=train_args,
+                train_dataset=train,
+                eval_dataset=valid,
+                compute_metrics=compute_metrics,
+            )
+            trainer.train()
+            model.save_pretrained(train_args.output_dir)
+            wandb.finish()
+            print(f"--- Fold {fold} finish! ---")
+            fold += 1
+
+    else:
+        print("### START TRAINING with Non-KFold ###")
+        print(f"Current model is {model_args.model_name}")
+        print(f"Current device is {device}")
+
+        model_config = AutoConfig.from_pretrained(
+            pretrained_model_name_or_path=model_args.model_name
+        )
+        model_config.num_labels = 7
+        model = AutoModelForSequenceClassification.from_pretrained(
+            model_args.model_name, config=model_config
+        )
+        model.to(device)
+        model.train()
+
+        wandb.init(
+            entity="psrpsj",
+            project="speaker",
+            name=model_args.project_name,
+            tags=[model_args.model_name],
+        )
+        wandb.config.update(train_args)
+        data["Target"] = label_to_num(data["Target"])
+        train_dataset, valid_dataset = train_test_split(
+            data, test_size=0.2, stratify=data["Target"], random_state=42
+        )
+
+        train = CustomDataset(train_dataset, tokenizer)
+        valid = CustomDataset(valid_dataset, tokenizer)
+
+        trainer = CustomTrainer(
+            loss_name=model_args.loss_name,
+            model=model,
+            args=train_args,
+            train_dataset=train,
+            eval_dataset=valid,
+            compute_metrics=compute_metrics,
+        )
+        trainer.train()
+        model.save_pretrained(
+            os.path.join(train_args.output_dir, model_args.project_name)
+        )
+        wandb.finish()
     print("### TRAINING FINISH ###")
 
 
