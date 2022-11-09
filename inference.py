@@ -58,6 +58,13 @@ def inference():
         pred_answer = np.argmax(pred_prob, axis=-1)
         dataset["Target"] = pred_answer
         dataset["Target"] = num_to_label(dataset["Target"])
+        submission = pd.DataFrame({"ID": dataset["ID"], "Target": dataset["Target"]})
+        submission.to_csv(
+            os.path.join(
+                "./output/", model_args.project_name + "_kfold", "submission.csv"
+            ),
+            index=False,
+        )
 
     else:
         model_path = os.path.join("./output/", model_args.project_name)
@@ -86,9 +93,8 @@ def inference():
         output_prob = np.concatenate(output_prob, axis=0).tolist()
         dataset["Target"] = pred_answer
         dataset["Target"] = num_to_label(dataset["Target"])
-
-    submission = pd.DataFrame({"ID": dataset["ID"], "Target": dataset["Target"]})
-    submission.to_csv(os.path.join(model_path, "submission.csv"), index=False)
+        submission = pd.DataFrame({"ID": dataset["ID"], "Target": dataset["Target"]})
+        submission.to_csv(os.path.join(model_path, "submission.csv"), index=False)
     print("### INFERENCE FINISH ###")
 
 
