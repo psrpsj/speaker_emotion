@@ -16,7 +16,7 @@ from transformers import (
     HfArgumentParser,
     set_seed,
 )
-from utils import label_to_num
+from utils import label_to_num, stopword
 
 
 def compute_metrics(pred):
@@ -29,6 +29,7 @@ def compute_metrics(pred):
 
 def train():
     data = pd.read_csv("./data/train.csv")
+    data = stopword(data)
     data["Target"] = label_to_num(data["Target"])
     parser = HfArgumentParser((TrainingArguments, TrainModelArguments))
     (train_args, model_args) = parser.parse_args_into_dataclasses()
