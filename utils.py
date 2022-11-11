@@ -1,3 +1,8 @@
+import nltk
+
+from tqdm import tqdm
+
+
 def label_to_num(data):
     label_dict = {
         "neutral": 0,
@@ -22,3 +27,17 @@ def num_to_label(data):
         6: "fear",
     }
     return data.map(num_dict)
+
+
+def stopword(data):
+    nltk.download()
+    stop_word = set(nltk.corpus.stopwords.words("english"))
+    for idx in tqdm(range(len(data))):
+        line = data["Utterance"][idx]
+        line_token = nltk.tokenize.word_tokenize(line)
+        result = []
+        for word in line_token:
+            if word not in stop_word:
+                result.append(word)
+        data["Utterance"][idx] = " ".join(result)
+    return data
