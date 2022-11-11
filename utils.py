@@ -31,7 +31,7 @@ def num_to_label(data):
 
 def stopword(data):
     nltk.download()
-    stop_word = set(nltk.corpus.stopwords.word("english"))
+    stop_word = set(nltk.corpus.stopwords.words("english"))
     for idx in tqdm(range(len(data))):
         line = data["Utterance"][idx]
         line_token = nltk.tokenize.word_tokenize(line)
