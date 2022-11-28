@@ -130,7 +130,7 @@ def train():
             eval_data=valid,
             device=device,
         )
-        trainer.train()
+        model = trainer.train()
         model.save_pretrained(
             os.path.join(train_args.output_dir, model_args.project_name)
         )
