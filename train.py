@@ -6,9 +6,10 @@ import wandb
 
 from argument import TrainingArguments, TrainModelArguments
 from dataset import CustomDataset
+from model import BERTwithLSTM
 from sklearn.metrics import accuracy_score, f1_score
 from sklearn.model_selection import StratifiedKFold, train_test_split
-from trainer import CustomTrainer
+from trainer import CustomLossTrainer, CustomTrainer
 from transformers import (
     AutoConfig,
     AutoModelForSequenceClassification,
@@ -80,7 +81,7 @@ def train():
             train = CustomDataset(train_dataset, tokenizer)
             valid = CustomDataset(valid_dataset, tokenizer)
 
-            trainer = CustomTrainer(
+            trainer = CustomLossTrainer(
                 loss_name=model_args.loss_name,
                 model=model,
                 args=train_args,
@@ -103,9 +104,7 @@ def train():
             pretrained_model_name_or_path=model_args.model_name
         )
         model_config.num_labels = 7
-        model = AutoModelForSequenceClassification.from_pretrained(
-            model_args.model_name, config=model_config
-        )
+        model = BERTwithLSTM(model_args.model_name, config=model_config)
         model.to(device)
         model.train()
 
@@ -124,12 +123,12 @@ def train():
         valid = CustomDataset(valid_dataset, tokenizer)
 
         trainer = CustomTrainer(
-            loss_name=model_args.loss_name,
             model=model,
             args=train_args,
-            train_dataset=train,
-            eval_dataset=valid,
-            compute_metrics=compute_metrics,
+            loss_name=model_args.loss_name,
+            train_data=train,
+            eval_data=valid,
+            device=device,
         )
         trainer.train()
         model.save_pretrained(
