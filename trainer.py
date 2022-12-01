@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+import torch.nn.functional as F
 
 from loss import create_criterion
 from sklearn.metrics import accuracy_score, f1_score
@@ -38,7 +39,7 @@ class CustomLossTrainer(Trainer):
         return (loss, outputs) if return_outputs else loss
 
 
-class CustomLoss:
+class CustomTrainer:
     def __init__(self, model, args, loss_name, train_data, eval_data, device):
         self.model = model
         self.args = args
@@ -56,6 +57,22 @@ class CustomLoss:
         custom_loss = create_criterion(self.loss_name)
         loss = custom_loss(pred, label)
         return loss
+
+    def compute_loss(self, model, inputs, return_outputs=False):
+        if "labels" in inputs and self.loss_name != "default":
+            custom_loss = create_criterion(self.loss_name)
+            labels = inputs.pop("labels")
+        else:
+            labels = None
+
+        outputs = model(**inputs)
+
+        if labels is not None:
+            loss = custom_loss(outputs[0], labels)
+        else:
+            # We don't use .loss here since the model may return tuples instead of ModelOutput.
+            loss = outputs["loss"] if isinstance(outputs, dict) else outputs[0]
+        return (loss, outputs) if return_outputs else loss
 
     def get_scheduler(self, optimizer):
         if self.args.lr_scheduler_type == "linear":
@@ -89,14 +106,16 @@ class CustomLoss:
                     attention_mask=data["attention_mask"].to(self.device),
                     token_type_ids=data["token_type_ids"].to(self.device),
                 )
-                loss = self.criterion(self.loss_name, outputs[0], data["label"])
+                logit = outputs[0]
+                logit = logit.detach().cpu()
+                loss = self.criterion(data["label"], logit)
                 val_loss.append(loss)
-
-                preds += outputs.argmax(1).detach().cpu().numpy().tolist()
-                label += data["label"].detach().cpu().numpy().tolist()
+                result = np.argmax(logit, axis=-1)
+                preds += result.tolist()
+                label += data["label"].tolist()
             metrics = self.compute_metrics(preds, label)
             print(
-                f"Eval_loss: {np.mean(val_loss)}, Accuracy: {metrics['accuracy']}, F1 Score {metrics['f1_score']}"
+                f"*** Eval_loss: {np.mean(val_loss)}, Accuracy: {metrics['accuracy']}, F1 Score {metrics['f1_score']} ***"
             )
         return val_loss, metrics
 
@@ -125,15 +144,17 @@ class CustomLoss:
                 attention_mask=data["attention_mask"].to(self.device),
                 token_type_ids=data["token_type_ids"].to(self.device),
             )
-            loss = self.criterion(self.loss_name, outputs[0], data["label"])
+            loss = self.criterion(data["label"].to(self.device), outputs[0])
             train_loss.append(loss.item())
             loss.backward()
             optimizer.step()
             scheduler.step()
 
-            if step % self.args.eval_steps == 0:
+            if step % self.args.eval_steps == 0 and step != 0:
                 val_loss, score = self.validation(eval_dataload)
-                if best_score < score:
-                    best_score = score
+                compare_score = score[self.args.metric_for_best_model]
+                if best_score < compare_score:
+                    best_score = compare_score
                     best_model = self.model
+
         return best_model
