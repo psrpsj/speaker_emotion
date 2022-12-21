@@ -9,11 +9,12 @@ from dataset import CustomDataset
 from model import BERTwithLSTM
 from sklearn.metrics import accuracy_score, f1_score
 from sklearn.model_selection import StratifiedKFold, train_test_split
-from trainer import CustomLossTrainer, CustomTrainer
+from trainer import CustomTrainer, CustomBERTTrainer
 from transformers import (
     AutoConfig,
     AutoModelForSequenceClassification,
     AutoTokenizer,
+    EarlyStoppingCallback,
     HfArgumentParser,
     set_seed,
 )
@@ -81,13 +82,14 @@ def train():
             train = CustomDataset(train_dataset, tokenizer)
             valid = CustomDataset(valid_dataset, tokenizer)
 
-            trainer = CustomLossTrainer(
+            trainer = CustomTrainer(
                 loss_name=model_args.loss_name,
                 model=model,
                 args=train_args,
                 train_dataset=train,
                 eval_dataset=valid,
                 compute_metrics=compute_metrics,
+                callbacks=[EarlyStoppingCallback(early_stopping_patience=2)],
             )
             trainer.train()
             model.save_pretrained(output_dir)
@@ -104,7 +106,9 @@ def train():
             pretrained_model_name_or_path=model_args.model_name
         )
         model_config.num_labels = 7
-        model = BERTwithLSTM(model_args.model_name, config=model_config)
+        model = AutoModelForSequenceClassification.from_pretrained(
+            pretrained_model_name_or_path=model_args.model_name, config=model_config
+        )
         model.to(device)
         model.train()
 
@@ -123,14 +127,15 @@ def train():
         valid = CustomDataset(valid_dataset, tokenizer)
 
         trainer = CustomTrainer(
+            loss_name=model_args.loss_name,
             model=model,
             args=train_args,
-            loss_name=model_args.loss_name,
-            train_data=train,
-            eval_data=valid,
-            device=device,
+            train_dataset=train,
+            eval_dataset=valid,
+            compute_metrics=compute_metrics,
+            callbacks=[EarlyStoppingCallback(early_stopping_patience=2)],
         )
-        model = trainer.train()
+        trainer.train()
         model.save_pretrained(
             os.path.join(train_args.output_dir, model_args.project_name)
         )

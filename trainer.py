@@ -14,7 +14,7 @@ from transformers import (
 )
 
 
-class CustomLossTrainer(Trainer):
+class CustomTrainer(Trainer):
     """Custom Loss를 적용하기 위한 Trainer"""
 
     def __init__(self, loss_name, *args, **kwargs):
@@ -39,7 +39,7 @@ class CustomLossTrainer(Trainer):
         return (loss, outputs) if return_outputs else loss
 
 
-class CustomTrainer:
+class CustomBERTTrainer:
     def __init__(self, model, args, loss_name, train_data, eval_data, device):
         self.model = model
         self.args = args
