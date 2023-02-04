@@ -1,5 +1,5 @@
 # speaker_emotion
-[Report](https://sangryu-notes.notion.site/7343b2fb9d1140929766e3e60d844a99)
+[Report](https://sangryu-notes.notion.site/7343b2fb9d1140929766e3e60d844a99) 
 DACON 월간 데이콘 발화자의 감정인식 AI 경진대회
 ## 1. Project Overview
   - 목표
