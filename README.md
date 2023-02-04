@@ -6,7 +6,7 @@ DACON 월간 데이콘 발화자의 감정인식 AI 경진대회
   - 모델
     - [tae898/emoberta-base](https://github.com/tae898/erc) fine-tuned model.
   - Data
-    - 관광지 정보 (train: 9988개, test: 2609개).
+    - 문장, Dialogue_ID, Speaker가 포함된 데이터 (train: 9989개, test: 2610개).
 
 ## 2. Code Structure
 ``` text
